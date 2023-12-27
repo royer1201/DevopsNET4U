@@ -1,0 +1,43 @@
+---
+- name: DevOps Tasks Playbook
+  hosts: ubuntu_servers
+  become: true  # Run tasks with elevated privileges (sudo)
+
+  tasks:
+    - name: Check server uptime
+      command: uptime
+      register: uptime_result
+
+    - name: Display server uptime
+      debug:
+        var: uptime_result.stdout_lines
+
+    - name: Coinfigure additonal cron jobs
+      cron:
+        name: "disk usage"
+        job: 0 6 * * * df -h > /var/log/disk_usage.log
+
+    - name: Gather server stats using sar
+      shell: sar -u 1 3
+      register: sar_result
+
+    - name: Display server stats
+      debug:
+        var: sar_result.stdout_lines
+
+    - name: Install or remove packages and software
+      apt:
+        name: "{{ item }}"
+        state: "{{ package_state }}"
+      loop:
+        - htop
+        - tree
+        - vim
+      vars:
+        package_state: present  # You can change to 'absent' to remove packages
+
+  handlers:
+    - name: Restart cron service
+      service:
+        name: cron
+        state: restarted
